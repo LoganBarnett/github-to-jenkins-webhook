@@ -1,0 +1,16 @@
+#+title:     GitHub to Jenkins Webhook
+#+author:    Logan Barnett
+#+email:     logustus@gmail.com
+#+date:      <2025-09-18 Thu>
+#+language:  en
+#+file_tags:
+#+tags:
+
+A proxy service to securely handle GitHub repository updates and push your
+internal Jenkins webhooks.
+
+* Security
+
+~github-to-jenkins-webhook~ does HMAC verification against the header sent from
+GitHub, and also checks to make sure the request coming in is a proper webhook
+payload.
