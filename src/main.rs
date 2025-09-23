@@ -1,5 +1,6 @@
 mod args;
 mod error;
+mod github_types;
 mod webhook;
 
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};

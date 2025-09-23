@@ -26,6 +26,15 @@ pub enum ProxyError {
 
   #[error("Server error: {0}")]
   ServerError(String),
+
+  #[error("Invalid payload: {0}")]
+  InvalidPayload(String),
+
+  #[error("Payload size exceeds maximum allowed size")]
+  PayloadTooLarge,
+
+  #[error("Invalid Jenkins URL")]
+  InvalidJenkinsUrl,
 }
 
 impl ResponseError for ProxyError {
@@ -37,8 +46,11 @@ impl ResponseError for ProxyError {
       ProxyError::ForwardRequest(_) => {
         HttpResponse::BadGateway().body("Failed to forward request to Jenkins")
       }
-      ProxyError::ReadBody | ProxyError::InvalidHeader(_) => {
+      ProxyError::ReadBody | ProxyError::InvalidHeader(_) | ProxyError::InvalidPayload(_) | ProxyError::PayloadTooLarge => {
         HttpResponse::BadRequest().body(self.to_string())
+      }
+      ProxyError::InvalidJenkinsUrl | ProxyError::Configuration(_) => {
+        HttpResponse::InternalServerError().body(self.to_string())
       }
       _ => HttpResponse::InternalServerError().body("Internal server error"),
     }
@@ -50,7 +62,8 @@ impl ResponseError for ProxyError {
         StatusCode::UNAUTHORIZED
       }
       ProxyError::ForwardRequest(_) => StatusCode::BAD_GATEWAY,
-      ProxyError::ReadBody | ProxyError::InvalidHeader(_) => StatusCode::BAD_REQUEST,
+      ProxyError::ReadBody | ProxyError::InvalidHeader(_) | ProxyError::InvalidPayload(_) | ProxyError::PayloadTooLarge => StatusCode::BAD_REQUEST,
+      ProxyError::InvalidJenkinsUrl | ProxyError::Configuration(_) => StatusCode::INTERNAL_SERVER_ERROR,
       _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
   }
