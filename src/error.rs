@@ -35,6 +35,9 @@ pub enum ProxyError {
 
   #[error("Invalid Jenkins URL")]
   InvalidJenkinsUrl,
+
+  #[error("Configuration error: {0}")]
+  Configuration(String),
 }
 
 impl ResponseError for ProxyError {

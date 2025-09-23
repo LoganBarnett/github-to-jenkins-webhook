@@ -27,9 +27,12 @@ async fn main() -> Result<(), ProxyError> {
   );
   info!("Forwarding webhooks to: {}", args.jenkins_url);
 
+  let github_secret = args.get_github_secret()
+    .map_err(|e| ProxyError::Configuration(e))?;
+
   let app_state = web::Data::new(AppState {
     jenkins_url: args.jenkins_url,
-    github_secret: args.github_secret,
+    github_secret,
   });
 
   HttpServer::new(move || {

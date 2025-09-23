@@ -1,4 +1,6 @@
 use clap::Parser;
+use std::fs;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[clap(name = "github-jenkins-proxy")]
@@ -8,9 +10,17 @@ pub struct Args {
         short = 's',
         long = "github-secret",
         env = "GITHUB_SECRET",
-        help = "GitHub webhook secret for HMAC validation"
+        help = "GitHub webhook secret for HMAC validation",
+        conflicts_with = "github_secret_file"
     )]
-    pub github_secret: String,
+    pub github_secret: Option<String>,
+
+    #[clap(
+        long = "github-secret-file",
+        help = "Path to file containing GitHub webhook secret for HMAC validation",
+        conflicts_with = "github_secret"
+    )]
+    pub github_secret_file: Option<PathBuf>,
 
     #[clap(
         short = 'j',
@@ -37,4 +47,18 @@ pub struct Args {
         help = "Port to bind the server to"
     )]
     pub port: u16,
+}
+
+impl Args {
+    pub fn get_github_secret(&self) -> Result<String, String> {
+        if let Some(secret) = &self.github_secret {
+            Ok(secret.clone())
+        } else if let Some(path) = &self.github_secret_file {
+            fs::read_to_string(path)
+                .map(|s| s.trim().to_string())
+                .map_err(|e| format!("Failed to read GitHub secret from file '{}': {}", path.display(), e))
+        } else {
+            Err("Either --github-secret or --github-secret-file must be provided".to_string())
+        }
+    }
 }
