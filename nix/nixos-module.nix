@@ -90,12 +90,13 @@ in {
         serviceConfig = {
           ExecStart = lib.escapeShellArgs ([ bin ] ++ args);
 
-          Environment = lib.mapAttrsToList
-            (k: v: "${k}=${v}")
-            cfg.extraEnvironment
+          Environment = [
+            "GITHUB_SECRET_FILE=/run/credentials/%n/github_secret_file"
+          ] ++ (lib.mapAttrsToList (k: v: "${k}=${v}") cfg.extraEnvironment);
+          EnvironmentFile = lib.mkIf
+            (cfg.environmentFile != null)
+            cfg.environmentFile
           ;
-          EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
-          # LoadCredential puts the file at /run/credentials/%n/<name>
           LoadCredential = [ "github_secret_file:${cfg.githubSecretFile}" ];
           # Sandboxing; keep it reasonable for a small HTTP service
           DynamicUser = true;
