@@ -24,18 +24,15 @@
           # https://nixos.wiki/wiki/Rust#Shell.nix_example for some details.
           "rust-src"
           "rust-analyzer"
-          "rustfmt-preview"
+          "rustfmt"
         ];
       };
     in [
       pkgs.cargo-sweep
       pkgs.clang
-      pkgs.cargo
       # To help with finding openssl.
       pkgs.pkg-config
       rust
-      pkgs.rustfmt
-      pkgs.rustup
     ]);
   in {
 
@@ -46,6 +43,8 @@
         '';
       };
     });
+
+    nixosModules.default = ./nix/nixos-module.nix;
 
     overlays.default = final: prev: {
       github-to-jenkins-webhook = final.callPackage ./nix/derivation.nix {};

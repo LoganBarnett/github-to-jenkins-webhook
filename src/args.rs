@@ -1,7 +1,7 @@
 use clap::Parser;
+use clap_verbosity_flag::Verbosity;
 use std::fs;
 use std::path::PathBuf;
-use clap_verbosity_flag::Verbosity;
 
 #[derive(Parser, Debug)]
 #[clap(name = "github-jenkins-proxy")]
@@ -63,13 +63,18 @@ impl Args {
     } else if let Some(path) = &self.github_secret_file {
       fs::read_to_string(path)
         .map(|s| s.trim().to_string())
-        .map_err(|e| format!(
-          "Failed to read GitHub secret from file '{}': {}",
-          path.display(),
-          e,
-        ))
+        .map_err(|e| {
+          format!(
+            "Failed to read GitHub secret from file '{}': {}",
+            path.display(),
+            e,
+          )
+        })
     } else {
-      Err("Either --github-secret or --github-secret-file must be provided".to_string())
+      Err(
+        "Either --github-secret or --github-secret-file must be provided"
+          .to_string(),
+      )
     }
   }
 }

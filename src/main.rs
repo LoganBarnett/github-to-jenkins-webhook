@@ -28,7 +28,8 @@ async fn main() -> Result<(), ProxyError> {
   );
   info!("Forwarding webhooks to: {}", args.jenkins_url);
 
-  let github_secret = args.get_github_secret()
+  let github_secret = args
+    .get_github_secret()
     .map_err(|e| ProxyError::Configuration(e))?;
 
   let app_state = web::Data::new(AppState {
@@ -43,10 +44,10 @@ async fn main() -> Result<(), ProxyError> {
       .service(web::resource("/webhook").route(web::post().to(handle_webhook)))
       .default_service(web::route().to(health_check))
   })
-    .bind(bind_address)?
-    .run()
-    .await
-    .map_err(ProxyError::from)
+  .bind(bind_address)?
+  .run()
+  .await
+  .map_err(ProxyError::from)
 }
 
 #[derive(Clone)]

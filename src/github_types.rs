@@ -423,8 +423,12 @@ impl GitHubWebhookPayload {
       GitHubWebhookPayload::PullRequest(e) => e.number > 0,
       GitHubWebhookPayload::Issues(e) => !e.action.is_empty(),
       GitHubWebhookPayload::IssueComment(e) => !e.action.is_empty(),
-      GitHubWebhookPayload::Create(e) => !e.ref_field.is_empty() && !e.ref_type.is_empty(),
-      GitHubWebhookPayload::Delete(e) => !e.ref_field.is_empty() && !e.ref_type.is_empty(),
+      GitHubWebhookPayload::Create(e) => {
+        !e.ref_field.is_empty() && !e.ref_type.is_empty()
+      }
+      GitHubWebhookPayload::Delete(e) => {
+        !e.ref_field.is_empty() && !e.ref_type.is_empty()
+      }
       GitHubWebhookPayload::Fork(_) => true,
       GitHubWebhookPayload::Release(e) => !e.action.is_empty(),
       GitHubWebhookPayload::Generic(e) => {

@@ -37,19 +37,22 @@ pub async fn handle_webhook(
     .get(GITHUB_SIGNATURE_HEADER)
     .ok_or(ProxyError::MissingSignature)?;
 
-  let signature = signature_header
-    .to_str()
-    .map_err(|_| ProxyError::InvalidHeader("Invalid signature header".to_string()))?;
+  let signature = signature_header.to_str().map_err(|_| {
+    ProxyError::InvalidHeader("Invalid signature header".to_string())
+  })?;
 
   if !verify_signature(&body, signature, &state.github_secret)? {
     error!("Invalid signature from GitHub webhook");
     return Err(ProxyError::InvalidSignature);
   }
 
-  let payload: GitHubWebhookPayload = serde_json::from_slice(&body)
-    .map_err(|e| {
+  let payload: GitHubWebhookPayload =
+    serde_json::from_slice(&body).map_err(|e| {
       error!("Failed to parse GitHub webhook payload: {}", e);
-      ProxyError::InvalidPayload(format!("Invalid GitHub webhook payload: {}", e))
+      ProxyError::InvalidPayload(format!(
+        "Invalid GitHub webhook payload: {}",
+        e
+      ))
     })?;
 
   if !payload.validate_required_fields() {
@@ -99,8 +102,8 @@ fn verify_signature(
 }
 
 fn validate_jenkins_url(jenkins_url: &str) -> Result<bool, ProxyError> {
-  let url = Url::parse(jenkins_url)
-    .map_err(|_| ProxyError::InvalidJenkinsUrl)?;
+  let url =
+    Url::parse(jenkins_url).map_err(|_| ProxyError::InvalidJenkinsUrl)?;
 
   if url.scheme() != "http" && url.scheme() != "https" {
     warn!("Jenkins URL has invalid scheme: {}", url.scheme());
@@ -127,8 +130,8 @@ fn validate_jenkins_url(jenkins_url: &str) -> Result<bool, ProxyError> {
 }
 
 fn construct_jenkins_url(base_url: &str) -> Result<String, ProxyError> {
-  let mut url = Url::parse(base_url)
-    .map_err(|_| ProxyError::InvalidJenkinsUrl)?;
+  let mut url =
+    Url::parse(base_url).map_err(|_| ProxyError::InvalidJenkinsUrl)?;
 
   let path = url.path().to_string();
 
@@ -138,7 +141,8 @@ fn construct_jenkins_url(base_url: &str) -> Result<String, ProxyError> {
     path.clone()
   };
 
-  if !new_path.contains("/github-webhook/") && !new_path.contains("/ghprbhook/") {
+  if !new_path.contains("/github-webhook/") && !new_path.contains("/ghprbhook/")
+  {
     url.set_path(&format!("{}github-webhook/", new_path));
   } else {
     url.set_path(&new_path);
@@ -165,8 +169,13 @@ async fn forward_to_jenkins(
     }
 
     let header_name_str = header_name.as_str();
-    if header_name_str.starts_with("X-GitHub-") || header_name_str.starts_with("X-Hub-") {
-      if let Ok(name) = header_name.to_string().parse::<reqwest::header::HeaderName>() {
+    if header_name_str.starts_with("X-GitHub-")
+      || header_name_str.starts_with("X-Hub-")
+    {
+      if let Ok(name) = header_name
+        .to_string()
+        .parse::<reqwest::header::HeaderName>()
+      {
         if let Ok(value) = header_value.to_str() {
           if let Ok(value) = value.parse::<reqwest::header::HeaderValue>() {
             req_builder = req_builder.header(name, value);
@@ -181,16 +190,12 @@ async fn forward_to_jenkins(
   let status = response.status();
   let body = response.bytes().await?;
 
-  info!(
-    "Forwarded webhook to Jenkins. Response status: {}",
-    status,
-  );
+  info!("Forwarded webhook to Jenkins. Response status: {}", status,);
 
   Ok(
     HttpResponse::build(
-      actix_web::http::StatusCode::from_u16(
-        status.as_u16(),
-      ).unwrap(),
+      actix_web::http::StatusCode::from_u16(status.as_u16()).unwrap(),
     )
-     .body(body))
+    .body(body),
+  )
 }

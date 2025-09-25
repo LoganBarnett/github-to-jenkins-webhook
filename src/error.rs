@@ -50,9 +50,9 @@ impl ResponseError for ProxyError {
         HttpResponse::BadGateway().body("Failed to forward request to Jenkins")
       }
       ProxyError::ReadBody
-        | ProxyError::InvalidHeader(_)
-        | ProxyError::InvalidPayload(_)
-        | ProxyError::PayloadTooLarge => {
+      | ProxyError::InvalidHeader(_)
+      | ProxyError::InvalidPayload(_)
+      | ProxyError::PayloadTooLarge => {
         HttpResponse::BadRequest().body(self.to_string())
       }
       ProxyError::InvalidJenkinsUrl | ProxyError::Configuration(_) => {
@@ -68,8 +68,13 @@ impl ResponseError for ProxyError {
         StatusCode::UNAUTHORIZED
       }
       ProxyError::ForwardRequest(_) => StatusCode::BAD_GATEWAY,
-      ProxyError::ReadBody | ProxyError::InvalidHeader(_) | ProxyError::InvalidPayload(_) | ProxyError::PayloadTooLarge => StatusCode::BAD_REQUEST,
-      ProxyError::InvalidJenkinsUrl | ProxyError::Configuration(_) => StatusCode::INTERNAL_SERVER_ERROR,
+      ProxyError::ReadBody
+      | ProxyError::InvalidHeader(_)
+      | ProxyError::InvalidPayload(_)
+      | ProxyError::PayloadTooLarge => StatusCode::BAD_REQUEST,
+      ProxyError::InvalidJenkinsUrl | ProxyError::Configuration(_) => {
+        StatusCode::INTERNAL_SERVER_ERROR
+      }
       _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
   }
