@@ -1,28 +1,36 @@
 name: Auto Tag
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
+    outputs:
+      new_tag:
+        description: "Tag created"
+        value: ${{ jobs.tag.outputs.new_tag }}
+    secrets:
+      GH_PAT:
+        required: true
 
 permissions:
   contents: write
+
+concurrency:
+  group: autotag-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tag:
     name: Auto Tag
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
 
       - name: Get latest tag
         id: get_tag
         run: |
-          # Get the latest tag, or set to v0.0.0 if no tags exist
+          # Get the latest tag, or set to v0.0.0 if no tags exist.
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           echo "Latest tag: $LATEST_TAG"
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
@@ -32,18 +40,31 @@ jobs:
         run: |
           LATEST_TAG="${{ steps.get_tag.outputs.latest_tag }}"
           
-          # Remove 'v' prefix and split into major.minor.patch
+          # Remove 'v' prefix and split into major.minor.patch.
           VERSION=${LATEST_TAG#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           
-          # Increment minor version and reset patch to 0
+          # Increment minor version and reset patch to 0.
           NEW_MINOR=$((MINOR + 1))
           NEW_VERSION="v${MAJOR}.${NEW_MINOR}.0"
           
           echo "New version: $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create and push tag
+      - name: Update Cargo.toml version
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.new_version }}"
+          # Remove 'v' prefix for Cargo.toml.
+          CARGO_VERSION=${NEW_VERSION#v}
+          
+          # Update version in Cargo.toml.
+          sed -i "s/^version = \".*\"/version = \"$CARGO_VERSION\"/" Cargo.toml
+          
+          echo "Updated Cargo.toml to version $CARGO_VERSION"
+          cargo update --package github-to-jenkins-webhook
+          echo "Updated Cargo.lock to version $CARGO_VERSION"
+
+      - name: Commit version update and create tag
         run: |
           NEW_VERSION="${{ steps.new_version.outputs.new_version }}"
           
@@ -51,12 +72,19 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # Create annotated tag with commit message as tag message
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          git tag -a "$NEW_VERSION" -m "$COMMIT_MSG"
+          # Commit the Cargo.toml change.
+          git add Cargo.toml
+          git add Cargo.lock
+          git commit --message "[skip ci] chore: bump version to ${NEW_VERSION#v}"
           
-          # Push the tag
+          # Create annotated tag with commit message as tag message.
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          git tag --annotate "$NEW_VERSION" --message "$COMMIT_MSG"
+          
+          # Push the tag first (triggers Release), then the bump commit (ignored
+          # by commit message).
           git push origin "$NEW_VERSION"
+          git push origin HEAD:main
 
       - name: Trigger release workflow
         run: |
