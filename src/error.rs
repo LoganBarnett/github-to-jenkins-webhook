@@ -49,7 +49,10 @@ impl ResponseError for ProxyError {
       ProxyError::ForwardRequest(_) => {
         HttpResponse::BadGateway().body("Failed to forward request to Jenkins")
       }
-      ProxyError::ReadBody | ProxyError::InvalidHeader(_) | ProxyError::InvalidPayload(_) | ProxyError::PayloadTooLarge => {
+      ProxyError::ReadBody
+        | ProxyError::InvalidHeader(_)
+        | ProxyError::InvalidPayload(_)
+        | ProxyError::PayloadTooLarge => {
         HttpResponse::BadRequest().body(self.to_string())
       }
       ProxyError::InvalidJenkinsUrl | ProxyError::Configuration(_) => {
