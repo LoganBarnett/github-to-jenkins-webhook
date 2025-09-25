@@ -6,6 +6,17 @@
   };
 
   outputs = { self, nixpkgs, rust-overlay }@inputs: let
+    systems = [
+      "aarch64-darwin"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "x86_64-linux"
+    ];
+    forAllSystems = f: nixpkgs.lib.genAttrs systems f;
+    overlays = [
+      (import rust-overlay)
+    ];
+    pkgsFor = system: import nixpkgs { inherit overlays system; };
     packages = (pkgs: let
       rust = pkgs.rust-bin.stable.latest.default.override {
         extensions = [
@@ -28,19 +39,22 @@
     ]);
   in {
 
-    devShells.aarch64-darwin.default = let
-      system = "aarch64-darwin";
-      overlays = [
-        (import rust-overlay)
-      ];
-      pkgs = import nixpkgs {
-        inherit overlays system;
+    devShells = forAllSystems (system: {
+      default = (pkgsFor system).mkShell {
+        buildInputs = (packages (pkgsFor system));
+        shellHook = ''
+        '';
       };
-    in pkgs.mkShell {
-      buildInputs = (packages pkgs);
-      shellHook = ''
-      '';
+    });
+
+    overlays.default = final: prev: {
+      github-to-jenkins-webhook = final.callPackage ./nix/derivation.nix {};
     };
 
+    packages = forAllSystems (system: {
+      default = (pkgsFor system).callPackage ./nix/derivation.nix {};
+    });
+
   };
+
 }
