@@ -3,9 +3,9 @@ mod error;
 mod github_types;
 mod webhook;
 
-use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer};
 use clap::Parser;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::args::Args;
 use crate::error::ProxyError;
@@ -46,7 +46,8 @@ async fn main() -> Result<(), ProxyError> {
       .app_data(app_state.clone())
       .wrap(middleware::Logger::default())
       .service(web::resource("/webhook").route(web::post().to(handle_webhook)))
-      .default_service(web::route().to(health_check))
+      .service(web::resource("/").route(web::get().to(health_check)))
+      .default_service(web::route().to(not_found))
   })
   .bind(bind_address)?
   .run()
@@ -62,4 +63,14 @@ pub struct AppState {
 
 async fn health_check() -> HttpResponse {
   HttpResponse::Ok().body("GitHub to Jenkins Webhook Proxy is running")
+}
+
+async fn not_found(req: HttpRequest) -> HttpResponse {
+  warn!(
+    "404 Not Found: {} {} from {:?}",
+    req.method(),
+    req.path(),
+    req.connection_info().peer_addr()
+  );
+  HttpResponse::NotFound().body("Not Found")
 }
