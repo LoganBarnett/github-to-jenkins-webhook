@@ -47,6 +47,12 @@ in {
       description = "TCP port to listen on. Passed to --port (default 8080).";
     };
 
+    logLevel = mkOption {
+      type = types.enum [ "trace" "debug" "info" "warn" "error" ];
+      default = "info";
+      description = "Log level for the service. Passed to --log-level.";
+    };
+
     environmentFile = mkOption {
       type = types.nullOr types.path;
       default = null;
@@ -77,6 +83,7 @@ in {
       args = [
         "--host" cfg.host
         "--port" (toString cfg.port)
+        "--log-level" cfg.logLevel
         "--jenkins-url" cfg.jenkinsUrl
         "--github-secret-file" "/run/credentials/%n/github_secret_file"
       ] ++ cfg.extraArgs;

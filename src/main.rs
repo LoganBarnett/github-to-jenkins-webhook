@@ -15,9 +15,13 @@ use crate::webhook::handle_webhook;
 async fn main() -> Result<(), ProxyError> {
   let args = Args::parse();
 
+  let log_level = args
+    .get_log_level()
+    .map_err(|e| ProxyError::Configuration(e))?;
+
   tracing_subscriber::fmt()
     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-    .with_max_level(args.verbosity)
+    .with_max_level(log_level)
     .init();
 
   let bind_address = format!("{}:{}", args.host, args.port);

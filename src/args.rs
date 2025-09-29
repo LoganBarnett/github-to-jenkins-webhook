@@ -1,7 +1,7 @@
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
 use std::fs;
 use std::path::PathBuf;
+use tracing::Level;
 
 #[derive(Parser, Debug)]
 #[clap(name = "github-jenkins-proxy")]
@@ -52,8 +52,14 @@ pub struct Args {
   )]
   pub port: u16,
 
-  #[command(flatten)]
-  pub verbosity: Verbosity,
+  #[clap(
+    short = 'l',
+    long = "log-level",
+    env = "LOG_LEVEL",
+    default_value = "info",
+    help = "Log level (trace, debug, info, warn, error)"
+  )]
+  pub log_level: String,
 }
 
 impl Args {
@@ -75,6 +81,20 @@ impl Args {
         "Either --github-secret or --github-secret-file must be provided"
           .to_string(),
       )
+    }
+  }
+
+  pub fn get_log_level(&self) -> Result<Level, String> {
+    match self.log_level.to_lowercase().as_str() {
+      "trace" => Ok(Level::TRACE),
+      "debug" => Ok(Level::DEBUG),
+      "info" => Ok(Level::INFO),
+      "warn" => Ok(Level::WARN),
+      "error" => Ok(Level::ERROR),
+      _ => Err(format!(
+        "Invalid log level '{}'. Valid options are: trace, debug, info, warn, error",
+        self.log_level
+      )),
     }
   }
 }
