@@ -3,9 +3,10 @@
   inputs = {
     nixpkgs.url = github:NixOS/nixpkgs/nixpkgs-unstable;
     rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, rust-overlay }@inputs: let
+  outputs = { self, nixpkgs, rust-overlay, crane }@inputs: let
     systems = [
       "aarch64-darwin"
       "aarch64-linux"
@@ -47,11 +48,15 @@
     nixosModules.default = ./nix/nixos-module.nix;
 
     overlays.default = final: prev: {
-      github-to-jenkins-webhook = final.callPackage ./nix/derivation.nix {};
+      github-to-jenkins-webhook = final.callPackage ./nix/derivation.nix {
+        inherit crane;
+      };
     };
 
     packages = forAllSystems (system: {
-      default = (pkgsFor system).callPackage ./nix/derivation.nix {};
+      default = (pkgsFor system).callPackage ./nix/derivation.nix {
+        inherit crane;
+      };
     });
 
   };

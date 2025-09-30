@@ -1,32 +1,34 @@
 { lib
 , stdenv
-, rustPlatform
+, crane
 , pkg-config
+, pkgs
 , openssl
 }:
 
-rustPlatform.buildRustPackage (let
+let
+  craneLib = crane.mkLib pkgs;
   pname = "github-to-jenkins-webhook";
-in {
-  inherit pname;
-  # Using a datestamped "unstable" is fine inside a repo.
-  version = "unstable-2025-09-23";
 
-  # Use the repository root as the source when packaging in-repo.
-  src = lib.cleanSource (../.);
+  # Clean source to avoid unnecessary rebuilds
+  src = craneLib.cleanCargoSource (../.);
 
-  # Use Cargo.lock from the repo so we don’t need a vendor hash.
-  # If you have git-based crates, add outputHashes here as needed.
-  cargoLock = {
-    lockFile = ../Cargo.lock;
-    outputHashes = { };
+  # Common arguments shared between both derivations
+  commonArgs = {
+    inherit pname src;
+    nativeBuildInputs = [ pkg-config ];
+    buildInputs = [ openssl ];
   };
 
-  nativeBuildInputs = [ pkg-config ];
+  # Build dependencies separately for better caching
+  cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+in
+# Build the actual application
+craneLib.buildPackage (commonArgs // {
+  inherit cargoArtifacts;
 
-  buildInputs = [
-    openssl
-  ];
+  # Using a datestamped "unstable" is fine inside a repo.
+  version = "unstable-2025-09-23";
 
   # Install examples for easy reference (optional).
   postInstall = ''
