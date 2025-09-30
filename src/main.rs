@@ -1,4 +1,5 @@
 mod args;
+mod datetime_agnostic;
 mod error;
 mod github_types;
 mod webhook;
@@ -45,7 +46,9 @@ async fn main() -> Result<(), ProxyError> {
     App::new()
       .app_data(app_state.clone())
       .wrap(middleware::Logger::default())
-      .service(web::resource("/webhook").route(web::post().to(handle_webhook)))
+      .service(
+        web::resource("/github-webhook/").route(web::post().to(handle_webhook)),
+      )
       .service(web::resource("/").route(web::get().to(health_check)))
       .default_service(web::route().to(not_found))
   })

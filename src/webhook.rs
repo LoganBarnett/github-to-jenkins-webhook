@@ -1,5 +1,6 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use hmac::{Hmac, Mac};
+use serde::de::DeserializeOwned;
 use sha2::Sha256;
 use tracing::{debug, error, info, warn};
 use url::Url;
@@ -46,14 +47,13 @@ pub async fn handle_webhook(
     return Err(ProxyError::InvalidSignature);
   }
 
+  debug!(
+    "Webhook payload (first 1000 chars): {}",
+    String::from_utf8_lossy(&body[..body.len().min(1000)]),
+  );
+
   let payload: GitHubWebhookPayload =
-    serde_json::from_slice(&body).map_err(|e| {
-      error!("Failed to parse GitHub webhook payload: {}", e);
-      ProxyError::InvalidPayload(format!(
-        "Invalid GitHub webhook payload: {}",
-        e
-      ))
-    })?;
+    parse_payload_from_header(event_type, &body)?;
 
   if !payload.validate_required_fields() {
     error!("GitHub webhook payload missing required fields");
@@ -74,6 +74,53 @@ pub async fn handle_webhook(
   info!("Forwarding to Jenkins: {}", jenkins_webhook_path);
 
   forward_to_jenkins(&req, &body, &jenkins_webhook_path).await
+}
+
+fn from_slice_with_path<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, ProxyError> {
+  let mut de = serde_json::Deserializer::from_slice(bytes);
+  match serde_path_to_error::deserialize(&mut de) {
+    Ok(v) => Ok(v),
+    Err(e) => Err(ProxyError::SerdePath {
+      path: e.path().to_string(),
+      source: e.into_inner(),
+    }),
+  }
+}
+
+fn parse_payload_from_header(
+  event_type: &str,
+  body: &web::Bytes,
+) -> Result<GitHubWebhookPayload, ProxyError> {
+  match event_type {
+    "push" => Ok(GitHubWebhookPayload::Push(from_slice_with_path(&body)?)),
+    "pull_request" => Ok(GitHubWebhookPayload::PullRequest(
+      from_slice_with_path(&body)?,
+    )),
+    "issues" => {
+      Ok(GitHubWebhookPayload::Issues(from_slice_with_path(&body)?))
+    }
+    "issue_comment" => Ok(GitHubWebhookPayload::IssueComment(
+      from_slice_with_path(&body)?,
+    )),
+    "create" => {
+      Ok(GitHubWebhookPayload::Create(from_slice_with_path(&body)?))
+    }
+    "delete" => {
+      Ok(GitHubWebhookPayload::Delete(from_slice_with_path(&body)?))
+    }
+    "fork" => Ok(GitHubWebhookPayload::Fork(from_slice_with_path(&body)?)),
+    "release" => Ok(GitHubWebhookPayload::Release(from_slice_with_path(
+      &body,
+    )?)),
+    _ => Err(ProxyError::InvalidPayload(format!(
+      "Event type `{}' not supported.",
+      event_type,
+    ))),
+  }
+  .map_err(|e| {
+    error!("Failed to parse GitHub webhook payload: {}", e);
+    ProxyError::InvalidPayload(format!("Invalid GitHub webhook payload: {}", e))
+  })
 }
 
 fn verify_signature(
@@ -164,24 +211,30 @@ async fn forward_to_jenkins(
   let mut req_builder = client.post(jenkins_url).body(body.to_vec());
 
   for (header_name, header_value) in original_req.headers() {
-    if header_name == GITHUB_SIGNATURE_HEADER {
-      continue;
-    }
+    // if header_name == GITHUB_SIGNATURE_HEADER {
+    //   continue;
+    // }
 
     let header_name_str = header_name.as_str();
-    if header_name_str.starts_with("X-GitHub-")
-      || header_name_str.starts_with("X-Hub-")
+    if header_name_str.to_lowercase().starts_with("x-github-")
+      || header_name_str.to_lowercase().starts_with("x-hub-")
+      || header_name_str.to_lowercase().starts_with("x-forwarded-")
+      || header_name_str.to_lowercase() == "host"
+      || header_name_str.to_lowercase() == "accept"
+      || header_name_str.to_lowercase() == "content-type"
     {
-      if let Ok(name) = header_name
-        .to_string()
-        .parse::<reqwest::header::HeaderName>()
-      {
-        if let Ok(value) = header_value.to_str() {
-          if let Ok(value) = value.parse::<reqwest::header::HeaderValue>() {
-            req_builder = req_builder.header(name, value);
-          }
-        }
-      }
+      debug!(
+        "Passing header - {}: {:?}",
+        header_name,
+        header_value.to_str()
+      );
+      req_builder = req_builder.header(header_name.clone(), header_value);
+    } else {
+      debug!(
+        "Dropping header - {}: {:?}",
+        header_name,
+        header_value.to_str()
+      );
     }
   }
 

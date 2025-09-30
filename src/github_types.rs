@@ -1,8 +1,9 @@
 #![allow(dead_code)]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use std::collections::HashMap;
+use crate::datetime_agnostic::{datetime_from_int_or_str, FlexibleDateTime};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct User {
   pub login: String,
   pub id: u64,
@@ -25,7 +26,7 @@ pub struct User {
   pub site_admin: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Repository {
   pub id: u64,
   pub node_id: String,
@@ -37,9 +38,9 @@ pub struct Repository {
   pub description: Option<String>,
   pub fork: bool,
   pub url: String,
-  pub created_at: String,
-  pub updated_at: String,
-  pub pushed_at: Option<String>,
+  pub created_at: FlexibleDateTime,
+  pub updated_at: FlexibleDateTime,
+  pub pushed_at: Option<FlexibleDateTime>,
   pub git_url: String,
   pub ssh_url: String,
   pub clone_url: String,
@@ -71,7 +72,7 @@ pub struct Repository {
   pub default_branch: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Organization {
   pub login: String,
   pub id: u64,
@@ -87,13 +88,13 @@ pub struct Organization {
   pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Installation {
   pub id: u64,
   pub node_id: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Enterprise {
   pub id: u64,
   pub slug: String,
@@ -103,11 +104,11 @@ pub struct Enterprise {
   pub description: Option<String>,
   pub website_url: Option<String>,
   pub html_url: String,
-  pub created_at: String,
-  pub updated_at: String,
+  pub created_at: FlexibleDateTime,
+  pub updated_at: FlexibleDateTime,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Commit {
   pub id: String,
   pub tree_id: String,
@@ -122,14 +123,14 @@ pub struct Commit {
   pub modified: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CommitAuthor {
   pub name: String,
   pub email: String,
   pub username: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Issue {
   pub id: u64,
   pub node_id: String,
@@ -153,12 +154,12 @@ pub struct Issue {
   pub comments: u64,
   pub pull_request: Option<serde_json::Value>,
   pub closed_at: Option<String>,
-  pub created_at: String,
-  pub updated_at: String,
+  pub created_at: FlexibleDateTime,
+  pub updated_at: FlexibleDateTime,
   pub author_association: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Label {
   pub id: u64,
   pub node_id: String,
@@ -169,7 +170,7 @@ pub struct Label {
   pub default: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PullRequest {
   pub id: u64,
   pub node_id: String,
@@ -192,10 +193,10 @@ pub struct PullRequest {
   pub labels: Vec<Label>,
   pub milestone: Option<serde_json::Value>,
   pub active_lock_reason: Option<String>,
-  pub created_at: String,
-  pub updated_at: String,
-  pub closed_at: Option<String>,
-  pub merged_at: Option<String>,
+  pub created_at: FlexibleDateTime,
+  pub updated_at: FlexibleDateTime,
+  pub closed_at: Option<FlexibleDateTime>,
+  pub merged_at: Option<FlexibleDateTime>,
   pub merge_commit_sha: Option<String>,
   pub assignee: Option<User>,
   pub assignees: Vec<User>,
@@ -219,7 +220,7 @@ pub struct PullRequest {
   pub changed_files: u64,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PullRequestRef {
   pub label: String,
   pub ref_field: String,
@@ -228,7 +229,7 @@ pub struct PullRequestRef {
   pub repo: Option<Repository>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Release {
   pub id: u64,
   pub node_id: String,
@@ -244,13 +245,13 @@ pub struct Release {
   pub body: Option<String>,
   pub draft: bool,
   pub prerelease: bool,
-  pub created_at: String,
-  pub published_at: Option<String>,
+  pub created_at: FlexibleDateTime,
+  pub published_at: Option<FlexibleDateTime>,
   pub author: User,
   pub assets: Vec<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Comment {
   pub id: u64,
   pub node_id: String,
@@ -258,13 +259,13 @@ pub struct Comment {
   pub html_url: String,
   pub body: String,
   pub user: User,
-  pub created_at: String,
-  pub updated_at: String,
+  pub created_at: FlexibleDateTime,
+  pub updated_at: FlexibleDateTime,
   pub issue_url: Option<String>,
   pub author_association: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "event", content = "payload")]
 #[serde(rename_all = "snake_case")]
 pub enum WebhookEvent {
@@ -280,7 +281,7 @@ pub enum WebhookEvent {
   Unknown,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PushEvent {
   #[serde(rename = "ref")]
   pub ref_field: String,
@@ -301,13 +302,13 @@ pub struct PushEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Pusher {
   pub name: String,
   pub email: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PullRequestEvent {
   pub action: String,
   pub number: u64,
@@ -319,7 +320,7 @@ pub struct PullRequestEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct IssuesEvent {
   pub action: String,
   pub issue: Issue,
@@ -330,7 +331,7 @@ pub struct IssuesEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct IssueCommentEvent {
   pub action: String,
   pub issue: Issue,
@@ -342,7 +343,7 @@ pub struct IssueCommentEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CreateEvent {
   #[serde(rename = "ref")]
   pub ref_field: String,
@@ -357,7 +358,7 @@ pub struct CreateEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DeleteEvent {
   #[serde(rename = "ref")]
   pub ref_field: String,
@@ -370,7 +371,7 @@ pub struct DeleteEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ForkEvent {
   pub forkee: Repository,
   pub repository: Repository,
@@ -380,7 +381,7 @@ pub struct ForkEvent {
   pub enterprise: Option<Enterprise>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ReleaseEvent {
   pub action: String,
   pub release: Release,

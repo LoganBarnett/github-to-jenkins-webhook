@@ -30,6 +30,16 @@ pub enum ProxyError {
   #[error("Invalid payload: {0}")]
   InvalidPayload(String),
 
+  #[error("Invalid payload: {0}")]
+  PayloadDeserializationError(#[from] serde_json::Error),
+
+  #[error("webhook JSON mismatch at {path}: {source}")]
+  SerdePath {
+    path: String,
+    #[source]
+    source: serde_json::Error,
+  },
+
   #[error("Payload size exceeds maximum allowed size")]
   PayloadTooLarge,
 
