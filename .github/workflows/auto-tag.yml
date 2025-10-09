@@ -22,9 +22,7 @@ jobs:
     name: Auto Tag
     runs-on: ubuntu-latest
     outputs:
-      new_version:
-        description: "Tag created"
-        value: ${{ steps.new_version.outputs.new_version }}
+      new_version: ${{ steps.new_version.outputs.new_version }}
     steps:
       - uses: actions/checkout@v4
         with:
