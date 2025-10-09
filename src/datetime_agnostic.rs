@@ -1,5 +1,8 @@
 use chrono::{DateTime, TimeZone, Utc};
-use serde::{de::{self, Deserializer, Visitor}, Deserialize};
+use serde::{
+  de::{self, Deserializer, Visitor},
+  Deserialize,
+};
 use std::fmt;
 
 #[derive(Clone, Debug)]
@@ -36,7 +39,8 @@ where
       } else {
         (v, 0)
       };
-      Utc.timestamp_opt(secs, nanos as u32)
+      Utc
+        .timestamp_opt(secs, nanos as u32)
         .single()
         .ok_or_else(|| E::custom("invalid UNIX timestamp"))
     }
@@ -50,7 +54,8 @@ where
       } else {
         (v, 0)
       };
-      Utc.timestamp_opt(secs as i64, nanos)
+      Utc
+        .timestamp_opt(secs as i64, nanos)
         .single()
         .ok_or_else(|| E::custom("invalid UNIX timestamp"))
     }

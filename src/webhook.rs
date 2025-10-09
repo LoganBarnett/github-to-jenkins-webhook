@@ -76,7 +76,9 @@ pub async fn handle_webhook(
   forward_to_jenkins(&req, &body, &jenkins_webhook_path).await
 }
 
-fn from_slice_with_path<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, ProxyError> {
+fn from_slice_with_path<T: DeserializeOwned>(
+  bytes: &[u8],
+) -> Result<T, ProxyError> {
   let mut de = serde_json::Deserializer::from_slice(bytes);
   match serde_path_to_error::deserialize(&mut de) {
     Ok(v) => Ok(v),
@@ -96,22 +98,16 @@ fn parse_payload_from_header(
     "pull_request" => Ok(GitHubWebhookPayload::PullRequest(
       from_slice_with_path(&body)?,
     )),
-    "issues" => {
-      Ok(GitHubWebhookPayload::Issues(from_slice_with_path(&body)?))
-    }
+    "issues" => Ok(GitHubWebhookPayload::Issues(from_slice_with_path(&body)?)),
     "issue_comment" => Ok(GitHubWebhookPayload::IssueComment(
       from_slice_with_path(&body)?,
     )),
-    "create" => {
-      Ok(GitHubWebhookPayload::Create(from_slice_with_path(&body)?))
-    }
-    "delete" => {
-      Ok(GitHubWebhookPayload::Delete(from_slice_with_path(&body)?))
-    }
+    "create" => Ok(GitHubWebhookPayload::Create(from_slice_with_path(&body)?)),
+    "delete" => Ok(GitHubWebhookPayload::Delete(from_slice_with_path(&body)?)),
     "fork" => Ok(GitHubWebhookPayload::Fork(from_slice_with_path(&body)?)),
-    "release" => Ok(GitHubWebhookPayload::Release(from_slice_with_path(
-      &body,
-    )?)),
+    "release" => {
+      Ok(GitHubWebhookPayload::Release(from_slice_with_path(&body)?))
+    }
     _ => Err(ProxyError::InvalidPayload(format!(
       "Event type `{}' not supported.",
       event_type,

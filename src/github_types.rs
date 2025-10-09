@@ -1,7 +1,7 @@
 #![allow(dead_code)]
-use serde::{Deserialize};
-use std::collections::HashMap;
 use crate::datetime_agnostic::{datetime_from_int_or_str, FlexibleDateTime};
+use serde::Deserialize;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct User {
