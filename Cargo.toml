@@ -15,7 +15,7 @@ debug = false
 incremental = true
 
 [dependencies]
-actix-web = "4.4"
+actix-web = "4.6"
 clap = { version = "4.5", features = ["derive", "env"] }
 thiserror = "2.0"
 hmac = "0.12"

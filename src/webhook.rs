@@ -1,5 +1,9 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use hmac::{Hmac, Mac};
+use reqwest::header::{
+  HeaderMap as RHeaderMap, HeaderName as RHeaderName,
+  HeaderValue as RHeaderValue,
+};
 use serde::de::DeserializeOwned;
 use sha2::Sha256;
 use tracing::{debug, error, info, warn};
@@ -14,6 +18,23 @@ type HmacSha256 = Hmac<Sha256>;
 const GITHUB_SIGNATURE_HEADER: &str = "X-Hub-Signature-256";
 const GITHUB_EVENT_HEADER: &str = "X-GitHub-Event";
 const MAX_PAYLOAD_SIZE: usize = 25 * 1024 * 1024;
+
+/**
+ * These both use the headers from `http` under the hood, but there are
+ * disagreements on the version of `http` that reqwest and actix use.
+ */
+fn actix_to_reqwest_headers(req: &HttpRequest) -> RHeaderMap {
+  let mut out = RHeaderMap::new();
+  for (name, value) in req.headers().iter() {
+    if let (Ok(n), Ok(v)) = (
+      RHeaderName::from_bytes(name.as_str().as_bytes()),
+      RHeaderValue::from_bytes(value.as_bytes()),
+    ) {
+      out.insert(n, v);
+    }
+  }
+  out
+}
 
 pub async fn handle_webhook(
   req: HttpRequest,
@@ -206,7 +227,8 @@ async fn forward_to_jenkins(
 
   let mut req_builder = client.post(jenkins_url).body(body.to_vec());
 
-  for (header_name, header_value) in original_req.headers() {
+  let headers = actix_to_reqwest_headers(&original_req);
+  for (header_name, header_value) in headers.iter() {
     // if header_name == GITHUB_SIGNATURE_HEADER {
     //   continue;
     // }
