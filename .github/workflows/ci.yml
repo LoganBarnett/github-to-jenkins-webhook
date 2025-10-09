@@ -61,4 +61,4 @@ jobs:
     needs: autotag
     uses: ./.github/workflows/release.yml
     with:
-      tag: ${{ needs.autotag.outputs.new_tag }}
+      tag: ${{ needs.autotag.outputs.new_version }}

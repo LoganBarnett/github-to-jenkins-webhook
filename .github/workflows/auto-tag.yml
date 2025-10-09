@@ -3,9 +3,9 @@ name: Auto Tag
 on:
   workflow_call:
     outputs:
-      new_tag:
+      new_version:
         description: "Tag created"
-        value: ${{ jobs.tag.outputs.new_tag }}
+        value: ${{ jobs.tag.outputs.new_version }}
     secrets:
       GH_PAT:
         required: true
@@ -83,8 +83,9 @@ jobs:
           
           # Push the tag first (triggers Release), then the bump commit (ignored
           # by commit message).
-          git push origin "$NEW_VERSION"
-          git push origin HEAD:main
+          git push --atomic origin \
+            "HEAD:refs/heads/main" \
+            "refs/tags/$NEW_VERSION:refs/tags/$NEW_VERSION"
 
       - name: Trigger release workflow
         run: |
